@@ -22,19 +22,64 @@ unsigned long upperRightLastActive = millis();
 unsigned long lowerLeftLastActive = millis();
 unsigned long lowerRightLastActive = millis();
 
+int sendDelay = 80;     // cursor movement instructions can only be sent so fast without some information being lost. 80 ms seems to be about the minimum delay between commands to work reliably
+int moveDist = 125;     // move the cursor in chunks of 125 units (Mouse.move() takes an unsigned char and the operating range is [-128, 127] which is not large enough to register full directional swipes)
+
 // the time that the last swipe was sent
 unsigned long latestSwipe = millis();
 
+const int tempPin = 7;
+
 void setup(){
+    Serial.begin(115200);
     pinMode(upperLeft, INPUT);
     pinMode(upperRight, INPUT);
     pinMode(lowerLeft, INPUT);
     pinMode(lowerRight, INPUT);
+
+    pinMode(tempPin, INPUT_PULLUP);
+    Mouse.begin();
+    //  Mouse.move(LEFT-/RIGHT+, UP-/DOWN+);
+
+    pinMode(2, INPUT_PULLUP);
+    pinMode(3, INPUT_PULLUP);
+    pinMode(4, INPUT_PULLUP);
+    pinMode(5, INPUT_PULLUP);
 }
 
 void loop(){
-    updateResistorStates();
-    executeMovement();
+    checkFineTune();       // check the pins to see if the cursor is being fine-tuned at the moment.
+    // updateResistorStates();
+    // executeMovement();
+
+    if(digitalRead(tempPin) == 0){
+        swipeUp();
+        // swipeDown();
+        // swipeLeft();
+        // swipeRight();
+        delay(400);
+    }
+    
+}
+
+void checkFineTune(){
+    // move the cursor a small amount (up/down, left/right) for fine-tuning the position of the handle
+    if(digitalRead(2) == 0){
+        Mouse.move(0, -5);
+        delay(200);
+    }
+    if(digitalRead(3) == 0){
+        Mouse.move(0, 5);
+        delay(200);
+    }
+    if(digitalRead(4) == 0){
+        Mouse.move(-5, 0);
+        delay(200);
+    }
+    if(digitalRead(5) == 0){
+        Mouse.move(5, 0);
+        delay(200);
+    }
 }
 
 // based on the last time the photoresistors were active, determine if a 
@@ -92,17 +137,51 @@ bool evaluateDownSwipe(){
 }
 
 void swipeLeft(){
-
+    Mouse.move(moveDist, 0);
+    delay(sendDelay);
+    // delay for a bit so I can complete the swipe from the left direction
+    delay(200);
+    Mouse.move(-moveDist, 0);
+    delay(sendDelay);
 }
 
 void swipeRight(){
-
+    // swipe right and come back to the home position
+    Mouse.move(moveDist, 0);
+    delay(sendDelay);
+    Mouse.move(-moveDist, 0);
+    delay(sendDelay);
 }
 
 void swipeUp(){
+    // for whatever reason, 100 feels better than the full 125 that the other operations use.
+    // move diagonally down
+    Mouse.move(100, 100);
+    delay(sendDelay);
 
+    // move straight upwards twice
+    Mouse.move(0, -100);
+    delay(sendDelay);
+    Mouse.move(0, -100);
+    delay(sendDelay);
+
+    // move diagonally back down to the home position
+    Mouse.move(-100, 100);
+    delay(sendDelay);
 }
 
 void swipeDown(){
+    // move diagonally up
+    Mouse.move(moveDist, -moveDist);
+    delay(sendDelay);
 
+    // move straight downwards twice
+    Mouse.move(0, moveDist);
+    delay(sendDelay);
+    Mouse.move(0, moveDist);
+    delay(sendDelay);
+
+    // move diagonally back to the home position
+    Mouse.move(-moveDist, -moveDist);
+    delay(sendDelay);
 }
