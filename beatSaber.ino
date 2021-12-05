@@ -7,6 +7,14 @@ Thanks, and have fun! :)
 */
 
 // this sketch is intended for the right-hand control
+/*
+Right-hand settings within driver4VR:
+    Yaw: 2
+    Pitch: -4
+    Driver sensitivity: 200
+
+    Euler: x: 2.10 y: 136.15 z:-7.00
+*/
 
 const int upperLeft = A0;
 const int upperRight = A1;
