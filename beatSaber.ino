@@ -6,6 +6,9 @@ we'd appreciate some attribution so that people know where to find more stuff li
 Thanks, and have fun! :)
 */
 
+#include <Mouse.h>
+// #include <Keyboard.h>
+
 // this sketch is intended for the right-hand control
 /*
 Right-hand settings within driver4VR:
@@ -23,7 +26,7 @@ const int lowerRight = A3;
 
 const int lightThreshold = 300;     // when a resistor gets a reading that is smaller than this value, we want to record it (resistance decreases with light, I think)
 const int activeDiff = 50;          // if the resistors were active within this time frame, then I want to register a swipe
-const int swipeCooldown = 500;      // how long to wait between swipe commands (to prevent double-presses)
+const int swipeCooldown = 300;      // how long to wait between swipe commands (to prevent double-presses)
 
 unsigned long upperLeftLastActive = millis();
 unsigned long upperRightLastActive = millis();
@@ -118,6 +121,19 @@ void updateResistorStates(){
 }
 
 // based on the resistor histories, should a left swipe be acivated?
+
+bool evaluateUpSwipe(){
+    if(upperLeftLastActive - lowerLeftLastActive < activeDiff || upperRightLastActive - lowerRightLastActive < activeDiff){
+        swipeUp();
+    }
+    latestSwipe = millis();
+}
+bool evaluateDownSwipe(){
+    if(lowerLeftLastActive - upperLeftLastActive < activeDiff || lowerRightLastActive - upperRightLastActive < activeDiff){
+        swipeDown();
+    }
+    latestSwipe = millis();
+}
 bool evaluateLeftSwipe(){
     if(upperLeftLastActive - upperRightLastActive < activeDiff || lowerLeftLastActive - lowerRightLastActive < activeDiff){
         swipeLeft();
@@ -131,36 +147,8 @@ bool evaluateRightSwipe(){
     }
     latestSwipe = millis();
 }
-bool evaluateUpSwipe(){
-    if(upperLeftLastActive - lowerLeftLastActive < activeDiff || upperRightLastActive - lowerRightLastActive < activeDiff){
-        swipeUp();
-    }
-    latestSwipe = millis();
-}
-bool evaluateDownSwipe(){
-    if(lowerLeftLastActive - upperLeftLastActive < activeDiff || lowerRightLastActive - upperRightLastActive < activeDiff){
-        swipeDown();
-    }
-    latestSwipe = millis();
-}
 
-void swipeLeft(){
-    Mouse.move(moveDist, 0);
-    delay(sendDelay);
-    // delay for a bit so I can complete the swipe from the left direction
-    delay(200);
-    Mouse.move(-moveDist, 0);
-    delay(sendDelay);
-}
-
-void swipeRight(){
-    // swipe right and come back to the home position
-    Mouse.move(moveDist, 0);
-    delay(sendDelay);
-    Mouse.move(-moveDist, 0);
-    delay(sendDelay);
-}
-
+// execute the actual swipes
 void swipeUp(){
     // for whatever reason, 100 feels better than the full 125 that the other operations use.
     // move diagonally down
@@ -191,5 +179,22 @@ void swipeDown(){
 
     // move diagonally back to the home position
     Mouse.move(-moveDist, -moveDist);
+    delay(sendDelay);
+}
+
+void swipeLeft(){
+    Mouse.move(moveDist, 0);
+    delay(sendDelay);
+    // delay for a bit so I can complete the swipe from the left direction
+    delay(200);
+    Mouse.move(-moveDist, 0);
+    delay(sendDelay);
+}
+
+void swipeRight(){
+    // swipe right and come back to the home position
+    Mouse.move(moveDist, 0);
+    delay(sendDelay);
+    Mouse.move(-moveDist, 0);
     delay(sendDelay);
 }
