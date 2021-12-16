@@ -19,22 +19,18 @@ Right-hand settings within driver4VR:
     Euler: x: 2.10 y: 136.15 z:-7.00
 */
 
-const int upperLeft = A0;
-const int upperRight = A1;
-const int lowerLeft = A2; 
-const int lowerRight = A3;
+// the target is divided into 4 regions; a box with an "x" in the middle. When a region is hit with a sufficient amount of light, it will trigger a movement
+const int upRegion = A0;
+const int downRegion = A1;
+const int leftRegion = A2; 
+const int rightRegion = A3;
 
 const int lightThreshold = 300;     // when a resistor gets a reading that is smaller than this value, we want to record it (resistance decreases with light, I think)
 const int activeDiff = 50;          // if the resistors were active within this time frame, then I want to register a swipe
 const int swipeCooldown = 300;      // how long to wait between swipe commands (to prevent double-presses)
 
-unsigned long upperLeftLastActive = millis();
-unsigned long upperRightLastActive = millis();
-unsigned long lowerLeftLastActive = millis();
-unsigned long lowerRightLastActive = millis();
-
 int sendDelay = 80;     // cursor movement instructions can only be sent so fast without some information being lost. 80 ms seems to be about the minimum delay between commands to work reliably
-int moveDist = 125;     // move the cursor in chunks of 125 units (Mouse.move() takes an unsigned char and the operating range is [-128, 127] which is not large enough to register full directional swipes)
+int moveDist = 125;     // move the cursor in chunks of 125 units (Mouse.move() takes an unsigned char and the operating range is [-128, 127])
 
 // the time that the last swipe was sent
 unsigned long latestSwipe = millis();
@@ -43,10 +39,10 @@ const int tempPin = 7;
 
 void setup(){
     Serial.begin(115200);
-    pinMode(upperLeft, INPUT);
-    pinMode(upperRight, INPUT);
-    pinMode(lowerLeft, INPUT);
-    pinMode(lowerRight, INPUT);
+    pinMode(upRegion, INPUT);
+    pinMode(downRegion, INPUT);
+    pinMode(leftRegion, INPUT);
+    pinMode(rightRegion, INPUT);
 
     pinMode(tempPin, INPUT_PULLUP);
     Mouse.begin();
@@ -104,45 +100,30 @@ void executeMovement(){
     }
 }
 
-// read from all the resistors and update the history based on the readings
-void updateResistorStates(){
-    if(analogRead(upperLeft) < lightThreshold){
-        upperLeftLastActive = millis();
-    }
-    if(analogRead(upperRight) < lightThreshold){
-        upperRightLastActive = millis();
-    }
-    if(analogRead(lowerLeft) < lightThreshold){
-        lowerLeftLastActive = millis();
-    }
-    if(analogRead(lowerRight) < lightThreshold){
-        lowerRightLastActive = millis();
-    }
-}
-
-// based on the resistor histories, should a left swipe be acivated?
-
-bool evaluateUpSwipe(){
-    if(upperLeftLastActive - lowerLeftLastActive < activeDiff || upperRightLastActive - lowerRightLastActive < activeDiff){
+// read the state of all of the resistor pins to determine if movement should be executed
+void evaluateUpSwipe(){
+    if(analogRead(upRegion < lightThreshold)){
         swipeUp();
     }
+    // record the time that this swipe happened so we don't trigger multiple swipes unintentionally
+    // it's ok to do this after the movement is complete because the swipes are "blocking" and no further reads happen while the swipe is being executed
     latestSwipe = millis();
 }
-bool evaluateDownSwipe(){
-    if(lowerLeftLastActive - upperLeftLastActive < activeDiff || lowerRightLastActive - upperRightLastActive < activeDiff){
+void evaluateDownSwipe(){
+    if(analogRead(downRegion < lightThreshold)){
         swipeDown();
     }
     latestSwipe = millis();
 }
-bool evaluateLeftSwipe(){
-    if(upperLeftLastActive - upperRightLastActive < activeDiff || lowerLeftLastActive - lowerRightLastActive < activeDiff){
+void evaluateLeftSwipe(){
+    if(analogRead(leftRegion < lightThreshold)){
         swipeLeft();
     }
     latestSwipe = millis();
 }
-bool evaluateRightSwipe(){
+void evaluateRightSwipe(){
     // if the resistors have been activated within the threshold, 
-    if(upperRightLastActive - upperLeftLastActive < activeDiff || lowerRightLastActive - lowerLeftLastActive < activeDiff){
+    if(rightRegion < lightThreshold){
         swipeRight();
     }
     latestSwipe = millis();
