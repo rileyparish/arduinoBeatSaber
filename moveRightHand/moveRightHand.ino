@@ -25,8 +25,6 @@ const int bottomRegion = A1;
 const int leftRegion = A2; 
 const int rightRegion = A4;
 
-const int lightThreshold = 300;     // when a resistor gets a reading that is smaller than this value, we want to record it (resistance decreases with light, I think)
-
 int sendDelay = 80;     // cursor movement instructions can only be sent so fast without some information being lost. 80 ms seems to be about the minimum delay between commands to work reliably
 int moveDist = 125;     // move the cursor in chunks of 125 units (Mouse.move() takes an unsigned char and the operating range is [-128, 127])
 

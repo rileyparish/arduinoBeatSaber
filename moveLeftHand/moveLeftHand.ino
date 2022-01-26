@@ -1,4 +1,3 @@
-
 /*
 Hey there! This code was originally written for our YouTube channel, https://www.youtube.com/RKadeGaming
 We're glad that you've taken an interest in our project, and we hope that you have a good time building it!
@@ -25,8 +24,6 @@ const int topRegion = A0;
 const int bottomRegion = A1;
 const int leftRegion = A2; 
 const int rightRegion = A4;
-
-const int lightThreshold = 300;     // when a resistor gets a reading that is smaller than this value, we want to record it (resistance decreases with light, I think)
 
 int sendDelay = 80;     // cursor movement instructions can only be sent so fast without some information being lost. 80 ms seems to be about the minimum delay between commands to work reliably
 int moveDist = 125;     // move the cursor in chunks of 125 units (Mouse.move() takes an unsigned char and the operating range is [-128, 127])
