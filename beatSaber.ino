@@ -20,116 +20,113 @@ Right-hand settings within driver4VR:
 */
 
 // the target is divided into 4 regions; a box with an "x" in the middle. When a region is hit with a sufficient amount of light, it will trigger a movement
-const int upRegion = A0;
-const int downRegion = A1;
+const int topRegion = A0;
+const int bottomRegion = A1;
 const int leftRegion = A2; 
-const int rightRegion = A3;
+const int rightRegion = A4;
 
 const int lightThreshold = 300;     // when a resistor gets a reading that is smaller than this value, we want to record it (resistance decreases with light, I think)
-const int activeDiff = 50;          // if the resistors were active within this time frame, then I want to register a swipe
-const int swipeCooldown = 300;      // how long to wait between swipe commands (to prevent double-presses)
 
 int sendDelay = 80;     // cursor movement instructions can only be sent so fast without some information being lost. 80 ms seems to be about the minimum delay between commands to work reliably
 int moveDist = 125;     // move the cursor in chunks of 125 units (Mouse.move() takes an unsigned char and the operating range is [-128, 127])
 
-// the time that the last swipe was sent
-unsigned long latestSwipe = millis();
+// these store the initial ambient light value minus a tunable light level (to adjust sensitivity)
+int upThreshold = 0;
+int downThreshold = 0;
+int leftThreshold = 0;
+int rightThreshold = 0;
+int lightDiff = 50;     // if a photoresistor is lower than the initial ambient light by this amount (meaning light was introduced), the it's time to activate a movement
 
-const int tempPin = 7;
+// these pins are connected to simple buttons and are used for fine-tuning the position of the virtual lightsabers
+const int tuneUpPin = 2;
+const int tuneDownPin = 3;
+const int tuneLeftPin = 4;
+const int tuneRightPin = 5;
+const int tuneAmount = 5;
 
 void setup(){
     Serial.begin(115200);
-    pinMode(upRegion, INPUT);
-    pinMode(downRegion, INPUT);
+    pinMode(topRegion, INPUT);
+    pinMode(bottomRegion, INPUT);
     pinMode(leftRegion, INPUT);
     pinMode(rightRegion, INPUT);
 
-    pinMode(tempPin, INPUT_PULLUP);
+    // set the threshold values for each photoresistor relative to the ambient light. If a reading is below the threshold, trigger a movement
+    upThreshold = analogRead(topRegion) - lightDiff;
+    downThreshold = analogRead(bottomRegion) - lightDiff;
+    leftThreshold = analogRead(leftRegion) - lightDiff;
+    rightThreshold = analogRead(rightRegion) - lightDiff;
+
     Mouse.begin();
     //  Mouse.move(LEFT-/RIGHT+, UP-/DOWN+);
 
-    pinMode(2, INPUT_PULLUP);
-    pinMode(3, INPUT_PULLUP);
-    pinMode(4, INPUT_PULLUP);
-    pinMode(5, INPUT_PULLUP);
+    pinMode(tuneUpPin, INPUT_PULLUP);
+    pinMode(tuneDownPin, INPUT_PULLUP);
+    pinMode(tuneLeftPin, INPUT_PULLUP);
+    pinMode(tuneRightPin, INPUT_PULLUP);
 }
 
 void loop(){
     checkFineTune();       // check the pins to see if the cursor is being fine-tuned at the moment.
-    // updateResistorStates();
-    // executeMovement();
-
-    if(digitalRead(tempPin) == 0){
-        swipeUp();
-        // swipeDown();
-        // swipeLeft();
-        // swipeRight();
-        delay(400);
-    }
-    
+    executeMovement();    
 }
 
 void checkFineTune(){
     // move the cursor a small amount (up/down, left/right) for fine-tuning the position of the handle
-    if(digitalRead(2) == 0){
-        Mouse.move(0, -5);
+    if(digitalRead(tuneUpPin) == 0){
+        Mouse.move(0, -tuneAmount);
         delay(200);
     }
-    if(digitalRead(3) == 0){
-        Mouse.move(0, 5);
+    if(digitalRead(tuneDownPin) == 0){
+        Mouse.move(0, tuneAmount);
         delay(200);
     }
-    if(digitalRead(4) == 0){
-        Mouse.move(-5, 0);
+    if(digitalRead(tuneLeftPin) == 0){
+        Mouse.move(-tuneAmount, 0);
         delay(200);
     }
-    if(digitalRead(5) == 0){
-        Mouse.move(5, 0);
+    if(digitalRead(tuneRightPin) == 0){
+        Mouse.move(tuneAmount, 0);
         delay(200);
     }
 }
 
-// based on the last time the photoresistors were active, determine if a 
+// read from each of the photoresistors to determine which movement to execute
 void executeMovement(){
-    // if it's been long enough since the last movement, evaluate for new movements
-    if(millis() - latestSwipe < swipeCooldown){
-        evaluateLeftSwipe();
-        evaluateRightSwipe();
-        evaluateUpSwipe();
-        evaluateDownSwipe();
-    }
+    evaluateUpSwipe();
+    evaluateDownSwipe();
+    evaluateLeftSwipe();
+    evaluateRightSwipe();
 }
 
-// read the state of all of the resistor pins to determine if movement should be executed
 void evaluateUpSwipe(){
-    if(analogRead(upRegion < lightThreshold)){
+    // an upward swipe will contact the bottom region first
+    if(analogRead(bottomRegion) < upThreshold){
+        Serial.println("Swiping up");
         swipeUp();
     }
-    // record the time that this swipe happened so we don't trigger multiple swipes unintentionally
-    // it's ok to do this after the movement is complete because the swipes are "blocking" and no further reads happen while the swipe is being executed
-    latestSwipe = millis();
 }
 void evaluateDownSwipe(){
-    if(analogRead(downRegion < lightThreshold)){
+    if(analogRead(topRegion) < downThreshold){
+        Serial.println("Swiping down");
         swipeDown();
     }
-    latestSwipe = millis();
 }
 void evaluateLeftSwipe(){
-    if(analogRead(leftRegion < lightThreshold)){
+    if(analogRead(rightRegion) < leftThreshold){
+        Serial.println("Swiping left");
         swipeLeft();
     }
-    latestSwipe = millis();
 }
 void evaluateRightSwipe(){
-    // if the resistors have been activated within the threshold, 
-    if(rightRegion < lightThreshold){
+    if(analogRead(leftRegion) < rightThreshold){
+        Serial.println("Swiping right");
         swipeRight();
     }
-    latestSwipe = millis();
 }
 
-// execute the actual swipes
+// euler values within driver4VR: -2.10 75.15 9.8
+// describe the actual swipes
 void swipeUp(){
     // for whatever reason, 100 feels better than the full 125 that the other operations use.
     // move diagonally down
