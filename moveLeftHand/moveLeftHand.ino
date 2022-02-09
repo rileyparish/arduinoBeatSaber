@@ -22,8 +22,8 @@ Left-hand settings within driver4VR:
 // the target is divided into 4 regions; a box with an "x" in the middle. When a region is hit with a sufficient amount of light, it will trigger a movement
 const int topRegion = A0;
 const int bottomRegion = A1;
-const int leftRegion = A2; 
-const int rightRegion = A4;
+const int leftRegion = A3; 
+const int rightRegion = A5;
 
 int sendDelay = 80;     // cursor movement instructions can only be sent so fast without some information being lost. 80 ms seems to be about the minimum delay between commands to work reliably
 int moveDist = 125;     // move the cursor in chunks of 125 units (Mouse.move() takes an unsigned char and the operating range is [-128, 127])
@@ -33,7 +33,7 @@ int upThreshold = 0;
 int downThreshold = 0;
 int leftThreshold = 0;
 int rightThreshold = 0;
-int lightDiff = 50;     // if a photoresistor is lower than the initial ambient light by this amount (meaning light was introduced), the it's time to activate a movement
+int lightDiff = 75;     // if a photoresistor is lower than the initial ambient light by this amount (meaning light was introduced), the it's time to activate a movement
 
 // these pins are connected to simple buttons and are used for fine-tuning the position of the virtual lightsabers
 const int tuneUpPin = 2;
@@ -41,6 +41,9 @@ const int tuneDownPin = 3;
 const int tuneLeftPin = 4;
 const int tuneRightPin = 5;
 const int tuneAmount = 5;
+
+// this relay controls the LED strips
+const int relayPin = 8;
 
 void setup(){
     Serial.begin(115200);
@@ -62,6 +65,8 @@ void setup(){
     pinMode(tuneDownPin, INPUT_PULLUP);
     pinMode(tuneLeftPin, INPUT_PULLUP);
     pinMode(tuneRightPin, INPUT_PULLUP);
+
+    pinMode(relayPin, OUTPUT);
 }
 
 void loop(){
@@ -101,25 +106,33 @@ void evaluateUpSwipe(){
     // an upward swipe will contact the bottom region first
     if(analogRead(bottomRegion) < upThreshold){
         Serial.println("Swiping up");
+        digitalWrite(relayPin, LOW);
         swipeUp();
+        digitalWrite(relayPin, HIGH);
     }
 }
 void evaluateDownSwipe(){
     if(analogRead(topRegion) < downThreshold){
         Serial.println("Swiping down");
+        digitalWrite(relayPin, LOW);
         swipeDown();
+        digitalWrite(relayPin, HIGH);
     }
 }
 void evaluateLeftSwipe(){
     if(analogRead(rightRegion) < leftThreshold){
         Serial.println("Swiping left");
+        digitalWrite(relayPin, LOW);
         swipeLeft();
+        digitalWrite(relayPin, HIGH);
     }
 }
 void evaluateRightSwipe(){
     if(analogRead(leftRegion) < rightThreshold){
         Serial.println("Swiping right");
+        digitalWrite(relayPin, LOW);
         swipeRight();
+        digitalWrite(relayPin, HIGH);
     }
 }
 
