@@ -19,6 +19,9 @@ Right-hand settings within driver4VR:
     Euler: x: 2.10 y: 136.15 z:-7.00
 */
 
+// since this script takes control of the mouse, I want to be able to disable control. The start pin must read LOW before the Arduino can control the mouse.
+const int startPin = 13;
+
 // the target is divided into 4 regions; a box with an "x" in the middle. When a region is hit with a sufficient amount of light, it will trigger a movement
 const int topRegion = A0;
 const int bottomRegion = A1;
@@ -47,6 +50,11 @@ const int relayPin = 8;
 
 void setup(){
     Serial.begin(115200);
+    pinMode(startPin, INPUT_PULLUP);
+    while(digitalRead(startPin) == HIGH){
+        Serial.println("Waiting for startPin before continuing...");
+        delay(300);
+    }
     pinMode(topRegion, INPUT);
     pinMode(bottomRegion, INPUT);
     pinMode(leftRegion, INPUT);
