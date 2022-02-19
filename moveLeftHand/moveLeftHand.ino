@@ -44,12 +44,16 @@ const int tuneDownPin = 3;
 const int tuneLeftPin = 4;
 const int tuneRightPin = 5;
 const int tuneAmount = 5;
+const int clickPin = 6;
 
 // this relay controls the LED strips
 const int relayPin = 8;
 
 void setup(){
     Serial.begin(115200);
+    Mouse.begin();
+    //  Mouse.move(LEFT-/RIGHT+, UP-/DOWN+);
+
     pinMode(startPin, INPUT_PULLUP);
     while(digitalRead(startPin) == HIGH){
         Serial.println("Waiting for startPin before continuing...");
@@ -66,13 +70,11 @@ void setup(){
     leftThreshold = analogRead(leftRegion) - lightDiff;
     rightThreshold = analogRead(rightRegion) - lightDiff;
 
-    Mouse.begin();
-    //  Mouse.move(LEFT-/RIGHT+, UP-/DOWN+);
-
     pinMode(tuneUpPin, INPUT_PULLUP);
     pinMode(tuneDownPin, INPUT_PULLUP);
     pinMode(tuneLeftPin, INPUT_PULLUP);
     pinMode(tuneRightPin, INPUT_PULLUP);
+    pinMode(clickPin, INPUT_PULLUP);
 
     pinMode(relayPin, OUTPUT);
 }
@@ -100,6 +102,10 @@ void checkFineTune(){
         Mouse.move(tuneAmount, 0);
         delay(200);
     }
+    if(digitalRead(clickPin) == 0){
+        Mouse.click();
+        delay(200);
+    }    
 }
 
 // read from each of the photoresistors to determine which movement to execute
