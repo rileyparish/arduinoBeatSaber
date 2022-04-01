@@ -7,16 +7,13 @@ Thanks, and have fun! :)
 */
 
 #include <Mouse.h>
-// #include <Keyboard.h>
 
-// this sketch is intended for the right-hand control
+// this code is intended for the right-hand control
 /*
 Right-hand settings within driver4VR:
     Yaw: 2
     Pitch: -4
     Driver sensitivity: 200
-
-    Euler: x: 2.10 y: 136.15 z:-7.00 (these might not be replicable across reboots...)
 */
 
 // since this script takes control of the mouse, I want to be able to disable control. The start pin must read LOW before the Arduino can control the mouse.
@@ -29,14 +26,16 @@ const int leftRegion = A3;
 const int rightRegion = A5;
 
 int sendDelay = 80;     // cursor movement instructions can only be sent so fast without some information being lost. 80 ms seems to be about the minimum delay between commands to work reliably
-int moveDist = 125;     // move the cursor in chunks of 125 units (Mouse.move() takes an unsigned char and the operating range is [-128, 127])
+int moveDist = 125;     // move the cursor in chunks of 125 units (Mouse.move() takes a signed char and the operating range is [-128, 127])
 
 // these store the initial ambient light value minus a tunable light level (to adjust sensitivity)
-int upThreshold = 0;
-int downThreshold = 0;
-int leftThreshold = 0;
-int rightThreshold = 0;
-int lightDiff = 100;     // if a photoresistor is lower than the initial ambient light by this amount (meaning light was introduced), the it's time to activate a movement
+int topRegionThreshold = 0;
+int bottomRegionThreshold = 0;
+int leftRegionThreshold = 0;
+int rightRegionThreshold = 0;
+int lightDiff = 90;     // if a photoresistor reads lower than the initial ambient light by this amount (meaning light was introduced), the it's time to activate a movement
+    // the green laser causes a drop in resistance of about 200-300
+    // the blue laser causes a drop in resistance of about 700-800
 
 // these pins are connected to simple buttons and are used for fine-tuning the position of the virtual lightsabers
 const int tuneUpPin = 2;
@@ -49,6 +48,8 @@ const int clickPin = 6;
 // this relay controls the LED strips
 const int relayPin = 8;
 
+int photoRead = 0;
+
 void setup(){
     Serial.begin(115200);
     Mouse.begin();
@@ -57,18 +58,18 @@ void setup(){
     pinMode(startPin, INPUT_PULLUP);
     while(digitalRead(startPin) == HIGH){
         Serial.println("Waiting for startPin before continuing...");
-        delay(300);
+        delay(500);
     }
     pinMode(topRegion, INPUT);
     pinMode(bottomRegion, INPUT);
     pinMode(leftRegion, INPUT);
     pinMode(rightRegion, INPUT);
 
-    // set the threshold values for each photoresistor relative to the ambient light. If a reading is below the threshold, trigger a movement
-    upThreshold = analogRead(topRegion) - lightDiff;
-    downThreshold = analogRead(bottomRegion) - lightDiff;
-    leftThreshold = analogRead(leftRegion) - lightDiff;
-    rightThreshold = analogRead(rightRegion) - lightDiff;
+    // set the threshold values for each photoresistor relative to the current ambient light. If a subsequent reading is below the threshold, trigger a mouse movement
+    topRegionThreshold = analogRead(topRegion) - lightDiff;
+    bottomRegionThreshold = analogRead(bottomRegion) - lightDiff;
+    leftRegionThreshold = analogRead(leftRegion) - lightDiff;
+    rightRegionThreshold = analogRead(rightRegion) - lightDiff;
 
     pinMode(tuneUpPin, INPUT_PULLUP);
     pinMode(tuneDownPin, INPUT_PULLUP);
@@ -81,7 +82,7 @@ void setup(){
 
 void loop(){
     checkFineTune();       // check the pins to see if the cursor is being fine-tuned at the moment.
-    executeMovement();    
+    executeMovement();
 }
 
 void checkFineTune(){
@@ -118,40 +119,39 @@ void executeMovement(){
 
 void evaluateUpSwipe(){
     // an upward swipe will contact the bottom region first
-    if(analogRead(bottomRegion) < upThreshold){
-        Serial.println("Swiping up");
+    photoRead = analogRead(bottomRegion);
+    if(analogRead(bottomRegion) < bottomRegionThreshold){
         digitalWrite(relayPin, HIGH);
         swipeUp();
         digitalWrite(relayPin, LOW);
     }
 }
 void evaluateDownSwipe(){
-    if(analogRead(topRegion) < downThreshold){
-        Serial.println("Swiping down");
+    photoRead = analogRead(topRegion);
+    if(photoRead < topRegionThreshold){
         digitalWrite(relayPin, HIGH);
         swipeDown();
         digitalWrite(relayPin, LOW);
     }
 }
 void evaluateLeftSwipe(){
-    if(analogRead(rightRegion) < leftThreshold){
-        Serial.println("Swiping left");
+    photoRead = analogRead(rightRegion);
+    if(photoRead < rightRegionThreshold){
         digitalWrite(relayPin, HIGH);
         swipeLeft();
         digitalWrite(relayPin, LOW);
     }
 }
 void evaluateRightSwipe(){
-    if(analogRead(leftRegion) < rightThreshold){
-        Serial.println("Swiping right");
+    photoRead = analogRead(leftRegion);    
+    if(photoRead < leftRegionThreshold){
         digitalWrite(relayPin, HIGH);
         swipeRight();
         digitalWrite(relayPin, LOW);
     }
 }
 
-// euler values within driver4VR: -2.10 75.15 9.8
-// describe the actual swipes
+// these are the actual swipe motions for the right hand movements
 void swipeUp(){
     // for whatever reason, 100 feels better than the full 125 that the other operations use.
     // move diagonally down
